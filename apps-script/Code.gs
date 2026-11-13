@@ -80,7 +80,7 @@ function doPost(e) {
       const stamp = Utilities.formatDate(new Date(), TZ, 'yyyyMMdd-HHmmss');
       const ext = m[1] === 'png' ? 'png' : 'jpg';
       const safeName = name.replace(/^'/, '').replace(/[\\/:*?"<>|]/g, '').slice(0, 50);
-      const file = s.imgFolder.createFile(Utilities.newBlob(bytes, 'image/' + m[1], `${stamp} - ${safeName}.${ext}`));
+      const file = s.imgFolder.createFile(Utilities.newBlob(bytes, 'image/' + m[1], stamp + ' - ' + safeName + '.' + ext));
       try { file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (err) { /* tài khoản tổ chức có thể chặn chia sẻ công khai */ }
       s.sheet.appendRow([new Date(), name, role, message, file.getId(), file.getUrl(), true]);
       s.sheet.getRange(s.sheet.getLastRow(), 7).insertCheckboxes().check();
