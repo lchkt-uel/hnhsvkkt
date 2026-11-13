@@ -665,30 +665,78 @@ const io = new IntersectionObserver((ents) => ents.forEach(en => {
 
 /* ---------- Nhạc nền ---------- */
 (function music() {
-  const src = CFG.MUSIC_SRC; if (!src) return;
-  const a = $('#bgm'), btn = $('#music');
-  a.src = src; a.volume = 0;
+  const btn = $('#music');
   const target = CFG.MUSIC_VOLUME ?? 0.45;
   const evs = ['pointerdown', 'keydown', 'touchstart'];
-  const fade = (to, ms = 1200) => { const from = a.volume, t0 = performance.now(); (function f(t) { const k = Math.min(1, (t - t0) / ms); a.volume = from + (to - from) * k; if (k < 1) requestAnimationFrame(f); else if (to === 0) a.pause(); })(t0); };
-  const play = () => a.play().then(() => { btn.classList.add('on'); fade(target); return true; }).catch(() => false);
-  a.addEventListener('canplay', () => { btn.hidden = false; }, { once: true });
-  a.addEventListener('error', () => { btn.hidden = true; console.info('Chưa có file nhạc:', src); });
+  let player = null; // giao diện chung: play() -> Promise<bool>, pause(), setVol(0..1), getVol(), paused()
+
+  if (CFG.MUSIC_SRC) {
+    const a = $('#bgm'); a.src = CFG.MUSIC_SRC; a.volume = 0;
+    a.addEventListener('canplay', () => { btn.hidden = false; }, { once: true });
+    a.addEventListener('error', () => { btn.hidden = true; });
+    player = { play: () => a.play().then(() => true).catch(() => false), pause: () => a.pause(), setVol: v => a.volume = v, getVol: () => a.volume, paused: () => a.paused };
+    start();
+  } else if (CFG.MUSIC_YOUTUBE_ID) {
+    // Trình phát YouTube ẩn (nhạc phát từ YouTube, không cần tải file)
+    const holder = document.createElement('div');
+    holder.style.cssText = 'position:fixed;left:-9999px;bottom:0;width:200px;height:200px;opacity:0;pointer-events:none';
+    holder.innerHTML = '<div id="ytMusic"></div>';
+    document.body.appendChild(holder);
+    let yt = null, playing = false, vol = 0, waiters = [];
+    window.onYouTubeIframeAPIReady = () => {
+      yt = new YT.Player('ytMusic', {
+        videoId: CFG.MUSIC_YOUTUBE_ID, width: 200, height: 200,
+        playerVars: { autoplay: 0, controls: 0, loop: 1, playlist: CFG.MUSIC_YOUTUBE_ID, playsinline: 1, rel: 0, start: CFG.MUSIC_START || 0 },
+        events: {
+          onReady: () => { yt.setVolume(0); btn.hidden = false; start(); },
+          onStateChange: (e) => {
+            playing = e.data === YT.PlayerState.PLAYING;
+            if (playing) { waiters.forEach(w => w(true)); waiters = []; }
+            if (e.data === YT.PlayerState.ENDED) yt.playVideo();
+          },
+          onError: () => { btn.hidden = true; console.info('Video nhạc không cho nhúng hoặc không tồn tại.'); },
+        },
+      });
+    };
+    const tag = document.createElement('script'); tag.src = 'https://www.youtube.com/iframe_api'; document.head.appendChild(tag);
+    player = {
+      play: () => new Promise(res => {
+        if (!yt) return res(false);
+        waiters.push(res); yt.playVideo();
+        setTimeout(() => { if (!playing) { waiters = waiters.filter(w => w !== res); res(false); } }, 1500);
+      }),
+      pause: () => yt && yt.pauseVideo(),
+      setVol: v => { vol = v; yt && yt.setVolume(Math.round(v * 100)); },
+      getVol: () => vol,
+      paused: () => !playing,
+    };
+  } else return;
+
+  const fade = (to, ms = 1200) => {
+    const from = player.getVol(), t0 = performance.now();
+    (function f(t) { const k = Math.min(1, (t - t0) / ms); player.setVol(from + (to - from) * k); if (k < 1) requestAnimationFrame(f); else if (to === 0) player.pause(); })(t0);
+  };
+  const play = () => player.play().then(ok => { if (ok) { btn.classList.add('on'); fade(target); } return ok; });
+
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
-    const on = a.paused; store.set('thu-music', on);
+    const on = player.paused(); store.set('thu-music', on);
     if (on) play(); else { btn.classList.remove('on'); fade(0, 500); }
   });
-  if (!store.get('thu-music', true)) return;
-  play().then(ok => {
-    if (ok) return;
-    const first = (e) => {
-      if (e.target.closest && e.target.closest('#music')) return;
-      evs.forEach(ev => window.removeEventListener(ev, first, true));
-      if (store.get('thu-music', true)) play();
-    };
-    evs.forEach(ev => window.addEventListener(ev, first, true));
-  });
+
+  function start() {
+    if (!store.get('thu-music', true)) return;
+    play().then(ok => {
+      if (ok) return;
+      // Trình duyệt chặn tự phát nhạc có tiếng: phát ở lần chạm/bấm đầu tiên
+      const first = (e) => {
+        if (e.target.closest && e.target.closest('#music')) return;
+        evs.forEach(ev => window.removeEventListener(ev, first, true));
+        if (store.get('thu-music', true)) play();
+      };
+      evs.forEach(ev => window.addEventListener(ev, first, true));
+    });
+  }
 })();
 
 /* ---------- Chế độ thử: giả lập thư mới đến ---------- */

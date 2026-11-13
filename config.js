@@ -7,8 +7,12 @@ window.APP_CONFIG = {
   // Tự làm mới triển lãm sau mỗi bao nhiêu giây (0 = tắt)
   GALLERY_REFRESH_SECONDS: 60,
 
-  // Nhạc nền "Bài ca sinh viên": chép file mp3 vào thư mục assets/ với đúng tên này (để "" nếu không dùng)
-  MUSIC_SRC: "assets/bai-ca-sinh-vien.mp3",
+  // Nhạc nền "Bài ca sinh viên"
+  // Cách 1 (đang dùng): phát từ YouTube — dán mã video (phần sau "v=" trong link)
+  MUSIC_YOUTUBE_ID: "FI5APBaKVYo",
+  MUSIC_START: 0,            // bắt đầu từ giây thứ mấy
+  // Cách 2: dùng file mp3 trong assets/ (nếu điền thì ưu tiên hơn YouTube)
+  MUSIC_SRC: "",
   MUSIC_VOLUME: 0.45,
 
   // Thời gian mỗi lá thư trong chế độ trình chiếu (giây)
