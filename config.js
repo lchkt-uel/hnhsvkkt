@@ -2,7 +2,7 @@
 // Dán link Web App của Google Apps Script (kết thúc bằng /exec) vào đây.
 // Để trống = chế độ thử: lời chúc chỉ lưu trên trình duyệt của máy đang dùng.
 window.APP_CONFIG = {
-  APPS_SCRIPT_URL: "",
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbxUdcfFNuDSzaXRXDg9y6Axl9F-Gcs-9HBUgqPzqHjO8K5ANNnRERAzzkc4Z3x5zjsgfQ/exec",
 
   // Tự làm mới triển lãm sau mỗi bao nhiêu giây (0 = tắt)
   GALLERY_REFRESH_SECONDS: 60,
